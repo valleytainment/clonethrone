@@ -79,24 +79,28 @@ const App: React.FC = () => {
 
   return (
     <div className="flex min-h-screen bg-black text-gray-100 selection:bg-cyan-500/30 overflow-hidden">
-      <Sidebar currentView={currentView} setView={setCurrentView} />
-      <main className="flex-1 overflow-y-auto h-screen p-4 md:p-8 pt-20 md:pt-8 custom-scrollbar">
+      <Sidebar 
+        currentView={currentView} 
+        setView={setCurrentView} 
+        remoteBrainActive={!!remoteBrainUrl}
+      />
+      <main className="flex-1 overflow-y-auto h-screen p-4 md:p-12 pt-20 md:pt-12 custom-scrollbar">
         <div className="max-w-6xl mx-auto">
           {renderView()}
         </div>
       </main>
 
-      <div className="md:hidden fixed top-0 left-0 right-0 glass h-16 flex items-center px-4 justify-between z-50">
-        <div className="flex items-center gap-2" onClick={() => setCurrentView(View.DASHBOARD)}>
-          <div className="w-8 h-8 bg-cyan-600 rounded flex items-center justify-center font-bold text-black shadow-[0_0_10px_cyan]">M</div>
-          <span className="font-bold tracking-tighter">MIRROR</span>
+      {/* Mobile Nav */}
+      <div className="md:hidden fixed top-0 left-0 right-0 glass h-20 flex items-center px-6 justify-between z-50 border-b border-white/5">
+        <div className="flex items-center gap-3" onClick={() => setCurrentView(View.DASHBOARD)}>
+          <div className="w-10 h-10 bg-white text-black rounded-xl flex items-center justify-center font-black text-xl shadow-[0_0_20px_rgba(255,255,255,0.2)]">M</div>
+          <span className="font-black tracking-tighter text-sm italic">MIRROR</span>
         </div>
-        <div className="flex items-center gap-4">
-          <button onClick={() => setCurrentView(View.REFINERY)} className="text-xl">🧪</button>
-          <button onClick={() => setCurrentView(View.STUDIO)} className="text-xl">🎬</button>
-          <div className="flex items-center gap-1">
-            <div className={`w-2 h-2 rounded-full ${remoteBrainUrl ? 'bg-green-500' : 'bg-red-500'} animate-pulse`}></div>
-          </div>
+        <div className="flex items-center gap-6">
+          <button onClick={() => setCurrentView(View.REFINERY)} className="text-2xl opacity-60 hover:opacity-100 transition-opacity">🧪</button>
+          <button onClick={() => setCurrentView(View.STUDIO)} className="text-2xl opacity-60 hover:opacity-100 transition-opacity">🎬</button>
+          <button onClick={() => setCurrentView(View.SETTINGS)} className="text-2xl opacity-60 hover:opacity-100 transition-opacity">⚙️</button>
+          <div className={`w-2.5 h-2.5 rounded-full ${remoteBrainUrl ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`}></div>
         </div>
       </div>
     </div>

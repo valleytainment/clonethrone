@@ -1,7 +1,7 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { VoiceEngine, Script, Project } from '../types';
 import { synthesizeVoice } from '../services/gemini';
+import { triggerMirrorEngine } from '../services/remoteBrain';
 import { decodeBase64, decodeAudioData, playBuffer } from '../utils';
 
 interface StudioProps {
@@ -68,13 +68,13 @@ const Studio: React.FC<StudioProps> = ({ scripts, onStartProject, updateProject,
 
   const handleStartGeneration = async () => {
     const script = scripts.find(s => s.id === selectedScriptId);
-    if (!script || !sourceImage || !remoteBrainUrl) {
-      alert('CRITICAL FAILURE: Insufficient payload data.');
+    if (!script || !sourceImage || (!remoteBrainUrl && selectedVoice !== VoiceEngine.GEMINI_TTS)) {
+      alert('CRITICAL FAILURE: Insufficient payload data. Check Likeness, Script, and Remote Node Link.');
       return;
     }
 
     setIsGenerating(true);
-    setGenLogs(["SESSION_INIT: Engine warming up..."]);
+    setGenLogs(["SESSION_INIT: Operation MIRROR Engaging..."]);
     
     const projectId = crypto.randomUUID();
     onStartProject({
@@ -89,39 +89,49 @@ const Studio: React.FC<StudioProps> = ({ scripts, onStartProject, updateProject,
     });
 
     try {
-      let audioUri = '';
-      if (selectedVoice === VoiceEngine.GEMINI_TTS) {
-        addLog("GEMINI_TTS: Requesting high-fidelity neural voice synthesis...");
-        const rawAudio = await synthesizeVoice(script.refinedText);
-        // rawAudio is 'data:audio/pcm;base64,...'
-        audioUri = rawAudio;
-        addLog("SYNTH_SUCCESS: Voice model ready for fusion.");
+      addLog(`ENGINE_LOCK: Protocol ${selectedVoice} selected.`);
+      let finalAudioUrl = '';
+      let finalVideoUrl = '';
 
-        // Preview playback for the Principal
-        if (!audioCtxRef.current) audioCtxRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
-        const base64Data = rawAudio.split(',')[1];
-        const bytes = decodeBase64(base64Data);
-        const buffer = await decodeAudioData(bytes, audioCtxRef.current);
-        playBuffer(buffer, audioCtxRef.current);
-        addLog("TERMINAL: Previewing voice synthesis to Principal...");
+      if (selectedVoice === VoiceEngine.GEMINI_TTS) {
+        addLog("GEMINI_CORE: Synthesizing authority-grade audio stream...");
+        finalAudioUrl = await synthesizeVoice(script.refinedText);
+        addLog("SYNTH_SUCCESS: Voice buffer secured.");
+      } else {
+        addLog(`UPLINK: Transmitting likeness to ${remoteBrainUrl}...`);
+        const response = await triggerMirrorEngine(remoteBrainUrl, {
+          script: script.refinedText,
+          image: sourceImage,
+          voice: selectedVoice
+        });
+
+        if (response.error) throw new Error(response.error);
+        if (response.logs) response.logs.forEach(l => addLog(`REMOTE: ${l}`));
+
+        if (response.audioBlob) {
+          finalAudioUrl = URL.createObjectURL(response.audioBlob);
+          addLog("SIGNAL_SYNC: Audio cloning successful.");
+          
+          // Tactical feedback: Play the clone
+          const previewAudio = new Audio(finalAudioUrl);
+          previewAudio.play().catch(() => addLog("AUDIO: Playback blocked by host browser."));
+        }
+        
+        finalVideoUrl = response.video_url || '';
       }
 
-      addLog(`COMPUTE_BRIDGE: Transmitting to ${remoteBrainUrl}...`);
-      await new Promise(r => setTimeout(r, 2000));
-      addLog("LIVEPORTRAIT: Warping template markers. Face fusion in progress.");
-      await new Promise(r => setTimeout(r, 3000));
-      addLog("VEO_FUSION: Rendering final MP4 package.");
-
-      const mockVideoUrl = "https://www.w3schools.com/html/mov_bbb.mp4";
+      addLog("POST_PROCESS: Neutralizing artifacts. Finalizing asset.");
+      
       updateProject(projectId, { 
         status: 'completed', 
-        videoUrl: mockVideoUrl,
-        audioUrl: audioUri || undefined,
+        videoUrl: finalVideoUrl || sourceImage, // Fallback to static if video gen skipped
+        audioUrl: finalAudioUrl,
         log: [...genLogs, "> SUCCESS: Asset finalized."]
       });
-      addLog("OPERATION_MIRROR: Content successfully vaulted.");
-    } catch (err: any) {
-      addLog(`FATAL: ${err.message || 'Engine stall.'}`);
+      addLog("OPERATION_MIRROR: Content successfully weaponized.");
+      
+    } catch (error: any) {
+      addLog(`FATAL_MALFUNCTION: ${error.message || 'System bridge collapse.'}`);
       updateProject(projectId, { status: 'failed' });
     } finally {
       setIsGenerating(false);
@@ -133,12 +143,12 @@ const Studio: React.FC<StudioProps> = ({ scripts, onStartProject, updateProject,
       <header className="flex flex-col md:flex-row justify-between items-end gap-6 border-b border-white/10 pb-8">
         <div>
           <h2 className="text-6xl font-black tracking-tighter text-white uppercase italic glow-cyan">Studio Command</h2>
-          <p className="text-gray-500 mt-2 font-mono text-[10px] tracking-[0.4em] uppercase">Multi-Modal Fusion Protocol</p>
+          <p className="text-gray-500 mt-2 font-mono text-[10px] tracking-[0.4em] uppercase">Likeness & Narrative Fusion Protocol</p>
         </div>
         <div className="flex items-center gap-3 glass px-8 py-3 rounded-full border border-cyan-500/30">
-          <div className={`w-3 h-3 rounded-full ${remoteBrainUrl ? 'bg-green-500 animate-pulse' : 'bg-red-500'} shadow-[0_0_10px_currentColor]`}></div>
+          <div className={`w-3 h-3 rounded-full ${remoteBrainUrl ? 'bg-green-500 animate-pulse shadow-[0_0_10px_#22c55e]' : 'bg-red-500 shadow-[0_0_10px_#ef4444]'}`}></div>
           <span className="text-[10px] font-black uppercase tracking-widest text-gray-200">
-            Node: {remoteBrainUrl ? 'ENCRYPTED' : 'DISCONNECTED'}
+            Node: {remoteBrainUrl ? 'ACTIVE' : 'OFFLINE'}
           </span>
         </div>
       </header>
@@ -146,17 +156,16 @@ const Studio: React.FC<StudioProps> = ({ scripts, onStartProject, updateProject,
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         <div className="lg:col-span-8 space-y-8">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {/* Biometric Capture */}
-            <section className="glass rounded-[40px] p-8 border border-white/5 relative group overflow-hidden shadow-2xl">
+            <section className="glass rounded-[40px] p-8 border border-white/5 relative group overflow-hidden shadow-2xl bg-black/40">
                {sourceImage && !cameraActive && <div className="scanner-line"></div>}
                <div className="flex justify-between items-center mb-6">
-                  <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-400">Likeness Template</h3>
+                  <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-400">Biometric Template</h3>
                   {cameraActive && <span className="text-[10px] text-red-500 font-bold animate-pulse">OPTICS_LIVE</span>}
                </div>
                
-               <div className="relative aspect-square w-full rounded-3xl bg-black border border-white/5 flex items-center justify-center overflow-hidden">
+               <div className="relative aspect-square w-full rounded-3xl bg-black border border-white/10 flex items-center justify-center overflow-hidden">
                   {cameraActive ? (
-                    <video ref={videoRef} autoPlay playsInline className="w-full h-full object-cover scale-x-[-1]" />
+                    <video ref={videoRef} autoPlay playsInline className="w-full h-full object-cover" />
                   ) : sourceImage ? (
                     <img src={sourceImage} className="w-full h-full object-cover opacity-90 transition-transform duration-700 hover:scale-105" alt="Target" />
                   ) : (
@@ -188,20 +197,19 @@ const Studio: React.FC<StudioProps> = ({ scripts, onStartProject, updateProject,
                <canvas ref={canvasRef} className="hidden" />
             </section>
 
-            {/* Voice selection */}
-            <section className="glass rounded-[40px] p-8 border border-white/5 space-y-4 shadow-2xl">
-               <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-400 mb-6">Voice Protocols</h3>
-               <VoiceSelector active={selectedVoice === VoiceEngine.KOKORO} title="KOKORO-82M" sub="LIGHT // INSTANT" onClick={() => setSelectedVoice(VoiceEngine.KOKORO)} />
+            <section className="glass rounded-[40px] p-8 border border-white/5 space-y-4 shadow-2xl bg-black/40">
+               <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-400 mb-6">Synthesis Backbone</h3>
+               <VoiceSelector active={selectedVoice === VoiceEngine.KOKORO} title="KOKORO-82M" sub="LIGHT // FREE" onClick={() => setSelectedVoice(VoiceEngine.KOKORO)} />
                <VoiceSelector active={selectedVoice === VoiceEngine.F5_TTS} title="F5-TTS" sub="EMOTION // GPU" onClick={() => setSelectedVoice(VoiceEngine.F5_TTS)} />
                <VoiceSelector active={selectedVoice === VoiceEngine.GEMINI_TTS} title="GEMINI-GEN" sub="AUTHORITY // HD" onClick={() => setSelectedVoice(VoiceEngine.GEMINI_TTS)} />
                
                <div className="pt-8 border-t border-white/5 space-y-4">
                   <div className="flex items-center gap-3">
                      <div className="w-3 h-3 bg-red-600 rounded-full shadow-[0_0_10px_#dc2626]"></div>
-                     <p className="text-[11px] font-black text-white uppercase tracking-[0.2em]">Principal Lock</p>
+                     <p className="text-[11px] font-black text-white uppercase tracking-[0.2em]">Principal Verified</p>
                   </div>
                   <p className="text-[10px] font-mono text-gray-600 uppercase leading-relaxed italic">
-                    All outputs are invisible watermarked with AudioSeal™ technology for sovereign verification.
+                    Mirror Protocol V1.1.0. All outputs watermarked for sovereign accountability.
                   </p>
                </div>
             </section>
@@ -209,18 +217,18 @@ const Studio: React.FC<StudioProps> = ({ scripts, onStartProject, updateProject,
 
           <section className="glass rounded-[40px] p-8 border border-white/5 bg-black/80 font-mono text-[11px] text-gray-500 h-56 overflow-y-auto custom-scrollbar shadow-inner">
             <div className="flex justify-between items-center border-b border-white/5 pb-4 mb-4">
-               <span className="font-black text-cyan-500 uppercase tracking-widest animate-pulse">Terminal Realtime Feed</span>
-               <span className="text-[9px] opacity-30">ENCRYPTED_SIGNAL_01</span>
+               <span className="font-black text-cyan-500 uppercase tracking-widest animate-pulse">Telemetry Buffer</span>
+               <span className="text-[9px] opacity-30">SECURE_STREAM_01</span>
             </div>
-            {genLogs.length === 0 ? <p className="opacity-10 italic">Awaiting session command...</p> : genLogs.map((l, i) => <div key={i} className={i === genLogs.length - 1 ? "text-cyan-400 font-bold" : ""}>{l}</div>)}
+            {genLogs.length === 0 ? <p className="opacity-10 italic">Awaiting tactical initialization...</p> : genLogs.map((l, i) => <div key={i} className={i === genLogs.length - 1 ? "text-cyan-400 font-bold" : ""}>{l}</div>)}
             <div ref={logEndRef} />
           </section>
         </div>
 
         <div className="lg:col-span-4 space-y-8">
-           <section className="glass rounded-[60px] p-12 border border-white/10 flex flex-col h-full shadow-2xl relative overflow-hidden bg-gradient-to-br from-transparent to-cyan-500/5">
+           <section className="glass rounded-[60px] p-12 border border-white/10 flex flex-col h-full shadow-2xl relative overflow-hidden bg-gradient-to-br from-transparent to-red-600/5">
               <div className="mb-10">
-                <h3 className="text-[11px] font-black uppercase tracking-[0.5em] text-gray-500 mb-3">Weaponized Deployment</h3>
+                <h3 className="text-[11px] font-black uppercase tracking-[0.5em] text-gray-500 mb-3">Weaponized Execution</h3>
                 <div className="h-1 w-20 bg-red-600 shadow-[0_0_15px_#dc2626]"></div>
               </div>
 
@@ -230,7 +238,7 @@ const Studio: React.FC<StudioProps> = ({ scripts, onStartProject, updateProject,
                    onChange={(e) => setSelectedScriptId(e.target.value)}
                    className="w-full bg-black border border-white/10 rounded-[24px] p-6 text-xs font-bold text-gray-300 outline-none focus:border-cyan-500 hover:bg-white/5 transition-all cursor-pointer"
                  >
-                   <option value="">-- NO SCRIPT SELECTED --</option>
+                   <option value="">-- NO PAYLOAD --</option>
                    {scripts.map(s => <option key={s.id} value={s.id}>{s.refinedText.substring(0, 35)}...</option>)}
                  </select>
                  
@@ -240,7 +248,7 @@ const Studio: React.FC<StudioProps> = ({ scripts, onStartProject, updateProject,
                    </div>
                  ) : (
                     <div className="p-16 border-2 border-dashed border-white/5 rounded-[32px] flex items-center justify-center opacity-10">
-                       <p className="text-[11px] text-white font-black uppercase tracking-widest text-center">Protocol: Awaiting script</p>
+                       <p className="text-[11px] text-white font-black uppercase tracking-widest text-center">Awaiting intellectual upload</p>
                     </div>
                  )}
               </div>
@@ -251,7 +259,7 @@ const Studio: React.FC<StudioProps> = ({ scripts, onStartProject, updateProject,
                 className="mt-12 w-full py-12 bg-red-700 hover:bg-red-600 disabled:bg-gray-900 transition-all rounded-[50px] font-black text-white tracking-[0.7em] uppercase shadow-[0_0_80px_rgba(239,68,68,0.3)] group overflow-hidden"
               >
                 <div className="absolute inset-0 bg-white/20 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-[2000ms]"></div>
-                <span className="relative z-10 text-sm">{isGenerating ? 'GEN_RUNNING...' : 'EXECUTE'}</span>
+                <span className="relative z-10 text-sm">{isGenerating ? 'PROCESSING_PAYLOAD...' : 'INITIALIZE MIRROR'}</span>
               </button>
            </section>
         </div>
