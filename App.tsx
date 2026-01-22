@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { View, VoiceEngine, Script, Project } from './types';
 import Sidebar from './components/Sidebar';
@@ -13,15 +12,18 @@ const App: React.FC = () => {
   const [scripts, setScripts] = useState<Script[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [remoteBrainUrl, setRemoteBrainUrl] = useState<string>('');
+  const [remoteBrainKey, setRemoteBrainKey] = useState<string>('');
   
   useEffect(() => {
     const savedScripts = localStorage.getItem('mirror_scripts');
     const savedProjects = localStorage.getItem('mirror_projects');
     const savedUrl = localStorage.getItem('mirror_remote_brain');
+    const savedKey = localStorage.getItem('mirror_remote_key');
     
     if (savedScripts) setScripts(JSON.parse(savedScripts));
     if (savedProjects) setProjects(JSON.parse(savedProjects));
     if (savedUrl) setRemoteBrainUrl(savedUrl);
+    if (savedKey) setRemoteBrainKey(savedKey);
   }, []);
 
   useEffect(() => {
@@ -56,6 +58,7 @@ const App: React.FC = () => {
           onStartProject={(p) => setProjects([p, ...projects])}
           updateProject={updateProject}
           remoteBrainUrl={remoteBrainUrl}
+          remoteBrainKey={remoteBrainKey}
         />;
       case View.ARCHIVE:
         return <Archive 
@@ -71,6 +74,11 @@ const App: React.FC = () => {
             setRemoteBrainUrl(url);
             localStorage.setItem('mirror_remote_brain', url);
           }} 
+          remoteBrainKey={remoteBrainKey}
+          onUpdateKey={(key) => {
+            setRemoteBrainKey(key);
+            localStorage.setItem('mirror_remote_key', key);
+          }}
         />;
       default:
         return <Dashboard projects={projects} stats={{ scripts: scripts.length }} />;
