@@ -1,0 +1,124 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Operation MIRROR | Sovereign Command</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+      :root {
+        --cyan: #22d3ee;
+        --red: #ef4444;
+      }
+      body {
+        font-family: 'Inter', sans-serif;
+        background-color: #020202;
+        color: #e5e7eb;
+        overflow-x: hidden;
+      }
+      .mono { font-family: 'JetBrains Mono', monospace; }
+      .glass {
+        background: rgba(10, 10, 15, 0.85);
+        backdrop-filter: blur(20px);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+      }
+      .glow-cyan { text-shadow: 0 0 10px rgba(34, 211, 238, 0.6); }
+      .glow-red { text-shadow: 0 0 10px rgba(239, 68, 68, 0.6); }
+      
+      /* CRT Scanline Effect */
+      body::before {
+        content: " ";
+        display: block;
+        position: fixed;
+        top: 0; left: 0; bottom: 0; right: 0;
+        background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.15) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
+        z-index: 1000;
+        background-size: 100% 3px, 4px 100%;
+        pointer-events: none;
+      }
+      
+      @keyframes flicker {
+        0% { opacity: 0.98; }
+        5% { opacity: 0.95; }
+        10% { opacity: 0.92; }
+        15% { opacity: 1; }
+        70% { opacity: 0.99; }
+        80% { opacity: 0.94; }
+        100% { opacity: 1; }
+      }
+      .animate-flicker { animation: flicker 0.15s infinite; }
+
+      .custom-scrollbar::-webkit-scrollbar { width: 5px; }
+      .custom-scrollbar::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); }
+      .custom-scrollbar::-webkit-scrollbar-thumb { background: #222; border-radius: 10px; border: 1px solid #333; }
+      .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: var(--cyan); }
+
+      @keyframes scan {
+        from { top: -100%; }
+        to { top: 100%; }
+      }
+      .scanner-line {
+        position: absolute;
+        width: 100%;
+        height: 2px;
+        background: var(--cyan);
+        box-shadow: 0 0 15px var(--cyan);
+        animation: scan 4s linear infinite;
+        opacity: 0.4;
+        z-index: 10;
+        pointer-events: none;
+      }
+
+      /* Boot screen style */
+      #boot-overlay {
+        position: fixed;
+        inset: 0;
+        background: black;
+        z-index: 9999;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        transition: opacity 1s ease-out;
+      }
+      .terminal-text {
+        font-family: 'JetBrains Mono', monospace;
+        color: var(--cyan);
+        font-size: 0.7rem;
+        width: 300px;
+        white-space: nowrap;
+        overflow: hidden;
+        border-right: 0.5em solid var(--cyan);
+        animation: typing 2s steps(40, end), blink-caret 0.75s step-end infinite;
+      }
+      @keyframes typing { from { width: 0 } to { width: 300px } }
+      @keyframes blink-caret { from, to { border-color: transparent } 50% { border-color: var(--cyan); } }
+    </style>
+<script type="importmap">
+{
+  "imports": {
+    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
+    "react/": "https://esm.sh/react@^19.2.3/",
+    "react": "https://esm.sh/react@^19.2.3",
+    "@google/genai": "https://esm.sh/@google/genai@^1.38.0"
+  }
+}
+</script>
+</head>
+<body>
+    <div id="boot-overlay">
+      <div class="terminal-text">MIRROR_ROOT_BOOT_SEQUENCE_V1.0.4...</div>
+    </div>
+    <div id="root"></div>
+    <script>
+      window.addEventListener('load', () => {
+        setTimeout(() => {
+          document.getElementById('boot-overlay').style.opacity = '0';
+          setTimeout(() => document.getElementById('boot-overlay').remove(), 1000);
+        }, 2000);
+      });
+    </script>
+</body>
+</html>

@@ -1,0 +1,8 @@
+{
+  "name": "Operation MIRROR: Command Center",
+  "description": "A sovereign multi-modal content engine for cloning voice and likeness to generate viral video content. Features script refinery, voice synthesis selection, and visual animation controls.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}
